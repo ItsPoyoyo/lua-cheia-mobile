@@ -1,3 +1,10 @@
+# Project Repositories
+- [Frontend](https://github.com/ItsPoyoyo/lua-cheia-frontend)
+- [Backend](https://github.com/ItsPoyoyo/lua-cheia-backend)
+- [Mobile](https://github.com/ItsPoyoyo/lua-cheia-mobile)
+
+
+
 # Expo eCommerce App Starter Template 👋
 
 This is a starter template for the expo eCommerce app tutorial on my YouTube channel.
