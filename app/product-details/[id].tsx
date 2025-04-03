@@ -1,14 +1,14 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState, useRef } from 'react';
 import { View, Platform, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
-import apiInstance from '../api';
+import apiInstance from '../Plugins/api';
 import ImageSlider from '@/components/ImageSlider';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
 import { useHeaderHeight } from '@react-navigation/elements';
 import Animated, { FadeInDown, SlideInDown } from 'react-native-reanimated';
 import { getUserId } from '../../components/getUserId'; // Utility to get user ID from token
-import CartID from '../CartID'; // Import the CartID utility
+import CartID from '../Plugins/CartID'; // Import the CartID utility
 
 type Props = {};
 

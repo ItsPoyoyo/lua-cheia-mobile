@@ -1,233 +1,289 @@
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, Alert, ScrollView } from 'react-native';
-import React, { useEffect, useState } from 'react';
-import { Stack } from 'expo-router';
-import apiInstance from './api';
-import { getUserId } from '../components/getUserId';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TextInput, TouchableOpacity, Image, Alert, ScrollView, ActivityIndicator, StyleSheet } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import apiInstance from './Plugins/api';
+import { getUserId } from '../components/getUserId';
 
 const AccountScreen = () => {
-  const [profileData, setProfileData] = useState({
+  const [formData, setFormData] = useState({
     full_name: '',
     email: '',
     phone: '',
-    about: '',
-    country: '',
-    city: '',
-    state: '',
-    address: '',
-    p_image: null,
+    image: null,
   });
+  const [initialData, setInitialData] = useState({
+    email: '',
+    phone: '',
+    image: null,
+  });
+  const [errors, setErrors] = useState({ email: null, phone: null });
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    fetchProfileData();
+    fetchProfile();
   }, []);
 
-  const fetchProfileData = async () => {
+  const fetchProfile = async () => {
     try {
       const userId = await getUserId();
-      if (!userId) return;
-
       const response = await apiInstance.get(`user/profile/${userId}/`);
-      setProfileData({
-        full_name: response.data?.full_name,
-        email: response.data.user.email,
-        phone: response.data.user.phone,
-        about: response.data.about,
-        country: response.data.country,
-        city: response.data.city,
-        state: response.data.state,
-        address: response.data.address,
-        p_image: response.data.image,
+      
+      const data = {
+        full_name: response.data.full_name || '',
+        email: response.data.user?.email || '',
+        phone: response.data.user?.phone || '',
+        image: response.data.image || null,
+      };
+
+      setFormData(data);
+      setInitialData({
+        email: response.data.user?.email || '',
+        phone: response.data.user?.phone || '',
+        image: response.data.image || null,
       });
     } catch (error) {
-      Alert.alert('Error', 'Failed to fetch profile data');
-      console.error('Error fetching profile data:', error);
+      Alert.alert('Error', 'Failed to fetch profile');
+      console.error('Fetch error:', error);
     }
   };
 
-  const handleInputChange = (name, value) => {
-    setProfileData({
-      ...profileData,
-      [name]: value,
-    });
-  };
+  const handleImagePick = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission required', 'Please allow access to your photos');
+        return;
+      }
 
-  const handlePickImage = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 1,
-    });
-
-    if (!result.canceled) {
-      setProfileData({
-        ...profileData,
-        p_image: result.assets[0].uri,
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 1,
       });
+
+      if (!result.canceled) {
+        setFormData(prev => ({
+          ...prev,
+          image: result.assets[0].uri,
+        }));
+      }
+    } catch (error) {
+      console.error('Image picker error:', error);
+      Alert.alert('Error', 'Failed to select image');
     }
   };
-
-  const handleFormSubmit = async () => {
+  const handleSubmit = async () => {
     setLoading(true);
+    setErrors({ email: null, phone: null });
+  
     const userId = await getUserId();
-    if (!userId) return;
-
-    const formData = new FormData();
-    if (profileData.p_image) {
-      const response = await fetch(profileData.p_image);
-      const blob = await response.blob();
-      formData.append('image', {
-        uri: profileData.p_image,
+    
+    const userData = {};
+    if (formData.email !== initialData.email) userData.email = formData.email;
+    if (formData.phone !== initialData.phone) userData.phone = formData.phone;
+  
+    // Prepare request payload
+    const payload = {
+      full_name: formData.full_name,
+      user: userData,  // Send `user` as an object, NOT a JSON string
+    };
+  
+    if (formData.image && formData.image !== initialData.image && !formData.image.startsWith('http')) {
+      const form = new FormData();
+      form.append('full_name', formData.full_name);
+      form.append('user', JSON.stringify(userData));  // Ensure this is sent as JSON
+  
+      form.append('image', {
+        uri: formData.image,
         name: `profile_${userId}.jpg`,
         type: 'image/jpeg',
-      } as any);
-    }
-    formData.append('full_name', profileData.full_name);
-    formData.append('about', profileData.about);
-    formData.append('country', profileData.country);
-    formData.append('city', profileData.city);
-    formData.append('state', profileData.state);
-    formData.append('address', profileData.address);
-    formData.append('email', profileData.email);
-    formData.append('phone', profileData.phone);
-
-    try {
-      await apiInstance.patch(`user/profile/${userId}/`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
       });
-      Alert.alert('Success', 'Profile updated successfully');
-    } catch (error) {
-      console.error('Error updating profile:', error);
-      Alert.alert('Error', 'Failed to update profile');
-    } finally {
-      setLoading(false);
+  
+      try {
+        const response = await apiInstance.patch(`user/profile/${userId}/`, form, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+  
+        if (response.status === 200) {
+          Alert.alert('Success', 'Profile updated successfully');
+          fetchProfile();
+        }
+      } catch (error) {
+        console.error('Update error:', error.response?.data);
+        handleErrors(error.response?.data);
+      }
+    } else {
+      try {
+        const response = await apiInstance.patch(`user/profile/${userId}/`, payload, {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+  
+        if (response.status === 200) {
+          Alert.alert('Success', 'Profile updated successfully');
+          fetchProfile();
+        }
+      } catch (error) {
+        console.error('Update error:', error.response?.data);
+        handleErrors(error.response?.data);
+      }
+    }
+  
+    setLoading(false);
+  };
+  
+  const handleErrors = (data) => {
+    if (data?.user) {
+      setErrors({
+        email: data.user.email?.[0] || data.user.email || null,
+        phone: data.user.phone?.[0] || data.user.phone || null,
+      });
+    } else {
+      Alert.alert('Error', data?.message || 'Update failed');
     }
   };
+  
 
   return (
-    <>
-      <Stack.Screen options={{ title: 'Your Account' }} />
-      <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.heading}>Account Information</Text>
+    <ScrollView contentContainerStyle={styles.container}>
+      <Text style={styles.heading}>Account Settings</Text>
 
-        <TouchableOpacity onPress={handlePickImage}>
-          <Image source={{ uri: profileData.p_image || 'https://via.placeholder.com/100' }} style={styles.profileImage} />
-          <Text style={styles.uploadText}>Change Profile Picture</Text>
-        </TouchableOpacity>
+      <TouchableOpacity onPress={handleImagePick} style={styles.imageContainer}>
+        <Image
+          source={{ uri: formData.image || 'https://via.placeholder.com/150' }}
+          style={styles.profileImage}
+        />
+        <Text style={styles.changePhotoText}>Change Photo</Text>
+      </TouchableOpacity>
 
+      <View style={styles.formGroup}>
         <Text style={styles.label}>Full Name</Text>
         <TextInput
           style={styles.input}
-          value={profileData.full_name}
-          onChangeText={(text) => handleInputChange('full_name', text)}
+          value={formData.full_name}
+          onChangeText={(text) => setFormData(prev => ({ ...prev, full_name: text }))}
         />
+      </View>
 
+      <View style={styles.formGroup}>
         <Text style={styles.label}>Email</Text>
         <TextInput
-          style={styles.input}
-          value={profileData.email}
-          onChangeText={(text) => handleInputChange('email', text)}
+          style={[styles.input, errors.email && styles.errorInput]}
+          value={formData.email}
+          onChangeText={(text) => {
+            setFormData(prev => ({ ...prev, email: text }));
+            if (errors.email) setErrors(prev => ({ ...prev, email: null }));
+          }}
+          keyboardType="email-address"
+          autoCapitalize="none"
         />
+        {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
+      </View>
 
+      <View style={styles.formGroup}>
         <Text style={styles.label}>Phone</Text>
         <TextInput
-          style={styles.input}
-          value={profileData.phone}
-          onChangeText={(text) => handleInputChange('phone', text)}
+          style={[styles.input, errors.phone && styles.errorInput]}
+          value={formData.phone}
+          onChangeText={(text) => {
+            setFormData(prev => ({ ...prev, phone: text }));
+            if (errors.phone) setErrors(prev => ({ ...prev, phone: null }));
+          }}
           keyboardType="phone-pad"
         />
+        {errors.phone && <Text style={styles.errorText}>{errors.phone}</Text>}
+      </View>
 
-        <Text style={styles.label}>About</Text>
-        <TextInput
-          style={styles.input}
-          value={profileData.about}
-          onChangeText={(text) => handleInputChange('about', text)}
-        />
-
-        <Text style={styles.label}>Address</Text>
-        <TextInput
-          style={styles.input}
-          value={profileData.address}
-          onChangeText={(text) => handleInputChange('address', text)}
-        />
-
-        <Text style={styles.label}>City</Text>
-        <TextInput
-          style={styles.input}
-          value={profileData.city}
-          onChangeText={(text) => handleInputChange('city', text)}
-        />
-
-        <Text style={styles.label}>State</Text>
-        <TextInput
-          style={styles.input}
-          value={profileData.state}
-          onChangeText={(text) => handleInputChange('state', text)}
-        />
-
-        <Text style={styles.label}>Country</Text>
-        <TextInput
-          style={styles.input}
-          value={profileData.country}
-          onChangeText={(text) => handleInputChange('country', text)}
-        />
-
-        <TouchableOpacity style={styles.updateButton} onPress={handleFormSubmit} disabled={loading}>
-          <Text style={styles.buttonText}>{loading ? 'Saving...' : 'Save Changes'}</Text>
-        </TouchableOpacity>
-      </ScrollView>
-    </>
+      <TouchableOpacity
+        style={[styles.button, loading && styles.buttonDisabled]}
+        onPress={handleSubmit}
+        disabled={loading}
+      >
+        {loading ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Text style={styles.buttonText}>Save Changes</Text>
+        )}
+      </TouchableOpacity>
+    </ScrollView>
   );
 };
 
-export default AccountScreen;
 
 const styles = StyleSheet.create({
-  container: {
-    flexGrow: 1,
-    padding: 20,
-  },
-  heading: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 20,
-  },
-  profileImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    alignSelf: 'center',
-  },
-  uploadText: {
-    fontSize: 14,
-    color: 'blue',
-    marginTop: 5,
-    textAlign: 'center',
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '500',
-    marginTop: 10,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 5,
-    padding: 10,
-    marginTop: 5,
-    marginBottom: 10,
-  },
-  updateButton: {
-    backgroundColor: '#007bff',
-    padding: 15,
-    borderRadius: 5,
-    marginTop: 20,
-    alignItems: 'center',
-  },
-  buttonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
+container: {
+  flexGrow: 1,
+  padding: 20,
+  backgroundColor: '#fff',
+},
+heading: {
+  fontSize: 24,
+  fontWeight: 'bold',
+  marginBottom: 20,
+  textAlign: 'center',
+  color: '#333',
+},
+imageContainer: {
+  alignItems: 'center',
+  marginBottom: 20,
+},
+profileImage: {
+  width: 120,
+  height: 120,
+  borderRadius: 60,
+  borderWidth: 2,
+  borderColor: '#ddd',
+},
+changePhotoText: {
+  marginTop: 8,
+  color: '#007AFF',
+  fontSize: 16,
+},
+formGroup: {
+  marginBottom: 15,
+  width: '100%',
+},
+label: {
+  fontSize: 16,
+  marginBottom: 5,
+  color: '#555',
+  fontWeight: '500',
+},
+input: {
+  borderWidth: 1,
+  borderColor: '#ddd',
+  borderRadius: 8,
+  padding: 12,
+  fontSize: 16,
+  backgroundColor: '#f9f9f9',
+},
+errorInput: {
+  borderColor: 'red',
+},
+errorText: {
+  color: 'red',
+  fontSize: 14,
+  marginTop: 5,
+},
+button: {
+  backgroundColor: '#007AFF',
+  padding: 15,
+  borderRadius: 8,
+  alignItems: 'center',
+  marginTop: 20,
+},
+buttonDisabled: {
+  opacity: 0.7,
+},
+buttonText: {
+  color: '#fff',
+  fontSize: 16,
+  fontWeight: 'bold',
+},
 });
+
+export default AccountScreen;

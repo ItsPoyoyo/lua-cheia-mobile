@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, Image, FlatList, StyleSheet, TouchableOpacity, ActivityIndicator, ScrollView } from 'react-native';
-import apiInstance from '../api';
+import apiInstance from '../Plugins/api';
 import { Stack } from 'expo-router';
 import Header from '@/components/Header';
 import ProductItem from '@/components/ProductItem';

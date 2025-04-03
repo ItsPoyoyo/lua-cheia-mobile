@@ -14,7 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
 import InputField from '@/components/InputField';
 import SocialLoginButtons from '@/components/SocialLoginButtons';
-import apiInstance from './api'; // Adjust the import path to your apiInstance
+import apiInstance from './Plugins/api'; // Adjust the import path to your apiInstance
 import * as SecureStore from 'expo-secure-store';
 
 const SignInScreen = () => {
@@ -27,28 +27,32 @@ const SignInScreen = () => {
       Alert.alert('Error', 'Please fill in all fields');
       return;
     }
-
+  
     setIsLoading(true);
-
+  
     try {
       // Make a POST request to the login endpoint
       const response = await apiInstance.post('user/token/', {
         email,
         password,
       });
-
+  
+      console.log('Login response:', response); // Log the response
+  
       // Store tokens securely
       await SecureStore.setItemAsync('access_token', response.data.access);
       await SecureStore.setItemAsync('refresh_token', response.data.refresh);
-
+  
       // Navigate to the home screen
       router.replace('/(tabs)'); // Replace with your home screen route
     } catch (error) {
+      console.log('Login error:', error); // Log the full error object
       Alert.alert('Error', error.response?.data?.detail || 'Login failed');
     } finally {
       setIsLoading(false);
     }
   };
+  
 
   return (
     <>

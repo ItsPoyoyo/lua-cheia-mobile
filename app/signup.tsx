@@ -14,7 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
 import InputField from '@/components/InputField';
 import SocialLoginButtons from '@/components/SocialLoginButtons';
-import apiInstance from './api';
+import apiInstance from './Plugins/api';
 
 const SignUpScreen = () => {
   const [fullName, setFullName] = useState('');

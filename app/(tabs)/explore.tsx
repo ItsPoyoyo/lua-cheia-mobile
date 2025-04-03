@@ -1,6 +1,6 @@
 import { FlatList,Image, StyleSheet, Text, View } from 'react-native'
 import React, { useEffect, useState } from 'react'
-import apiInstance from '../api';
+import apiInstance from '../Plugins/api';
 import { CategoryType } from '@/types/type';
 import { Stack } from 'expo-router';
 import  { useHeaderHeight } from '@react-navigation/elements';

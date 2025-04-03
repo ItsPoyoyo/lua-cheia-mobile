@@ -1,6 +1,6 @@
 import { StyleSheet, Image, Text, FlatList, View, TouchableOpacity, Alert } from 'react-native';
 import React, { useEffect, useState } from 'react';
-import apiInstance from '../api';
+import apiInstance from '../Plugins/api';
 import { CartItemType } from '@/types/type';
 import { Stack } from 'expo-router';
 import { useHeaderHeight } from '@react-navigation/elements';
@@ -8,7 +8,7 @@ import { Colors } from '@/constants/Colors';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { getUserId } from '../../components/getUserId'; // Utility to get user ID from token
-import CartID from '../CartID'; // Utility to get cart ID
+import CartID from '../Plugins/CartID'; // Utility to get cart ID
 
 type Props = {};
 

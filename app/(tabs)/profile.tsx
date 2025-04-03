@@ -4,8 +4,9 @@ import { Stack, useRouter } from 'expo-router';
 import { useHeaderHeight } from '@react-navigation/elements';
 import { Colors } from '@/constants/Colors';
 import { Ionicons } from '@expo/vector-icons';
-import apiInstance from '../api'; // Adjust the path as needed
+import apiInstance from '../Plugins/api'; // Adjust the path as needed
 import { getUserId } from '@/components/getUserId';
+import { useFocusEffect } from '@react-navigation/native'; // Import useFocusEffect
 
 const ProfileScreen = () => {
   const headerHeight = useHeaderHeight();
@@ -14,35 +15,38 @@ const ProfileScreen = () => {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Fetch user profile data
-  useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const userId = await getUserId(); // Get the user ID from the token
-        if (!userId) {
-          throw new Error('User ID not found in token');
-        }
-
-        console.log('Fetching profile for user ID:', userId); // Debugging
-
-        const response = await apiInstance.get(`user/profile/${userId}/`);
-        console.log('API Response:', response.data); // Debugging
-
-        if (response.data) {
-          setProfile(response.data);
-        } else {
-          throw new Error('No profile data returned from the server');
-        }
-      } catch (error) {
-        console.error('Error fetching profile data:', error);
-        Alert.alert('Error', 'Failed to fetch profile data. Please try again later.');
-      } finally {
-        setLoading(false);
+  // Function to fetch profile data
+  const fetchProfile = async () => {
+    try {
+      const userId = await getUserId(); // Get the user ID from the token
+      if (!userId) {
+        throw new Error('User ID not found in token');
       }
-    };
 
-    fetchProfile();
-  }, []);
+      console.log('Fetching profile for user ID:', userId); // Debugging
+
+      const response = await apiInstance.get(`user/profile/${userId}/`);
+      console.log('API Response:', response.data); // Debugging
+
+      if (response.data) {
+        setProfile(response.data);
+      } else {
+        throw new Error('No profile data returned from the server');
+      }
+    } catch (error) {
+      console.error('Error fetching profile data:', error);
+      Alert.alert('Error', 'Failed to fetch profile data. Please try again later.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch profile data when screen is focused
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchProfile(); // Fetch profile when screen comes into focus
+    }, [])
+  );
 
   // Handle logout
   const handleLogout = () => {
@@ -142,7 +146,7 @@ const styles = StyleSheet.create({
   },
   button: {
     padding: 10,
-    borderColor: Colors.lightGray,
+    borderColor: Colors.gray,
     borderWidth: 1,
     flexDirection: 'row',
     alignItems: 'center',

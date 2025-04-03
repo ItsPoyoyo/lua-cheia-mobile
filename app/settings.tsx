@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, Image } from 'react-native';
 import React, { useEffect, useState } from 'react';
 import { Stack } from 'expo-router';
-import apiInstance from './api';
+import apiInstance from './Plugins/api';
 import { getUserId } from '../components/getUserId';
 import * as ImagePicker from 'expo-image-picker';
 
