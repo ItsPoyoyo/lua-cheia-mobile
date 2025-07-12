@@ -1,4 +1,4 @@
-import { StyleSheet, Image, Text, FlatList, View, TouchableOpacity, Alert } from 'react-native';
+import { StyleSheet, Image, Text, FlatList, View, TouchableOpacity, Alert, Linking } from 'react-native';
 import React, { useEffect, useState } from 'react';
 import apiInstance from '../Plugins/api';
 import { CartItemType } from '@/types/type';
@@ -112,8 +112,55 @@ const CartScreen = (props: Props) => {
   };
 
   const handleCheckout = async () => {
-    // Implement checkout logic here
-    Alert.alert('Success', 'Checkout functionality will be implemented here');
+    try {
+      if (!cartId || cart.length === 0) {
+        Alert.alert('Error', 'Your cart is empty');
+        return;
+      }
+
+      const userId = await getUserId();
+      
+      // Create order first
+      const orderData = {
+        cart_id: cartId,
+        user_id: userId || 0,
+        full_name: 'Mobile User', // You might want to get this from user profile
+        email: 'user@example.com', // You might want to get this from user profile
+        phone: '+1234567890', // You might want to get this from user profile
+        address: '123 Main St', // You might want to get this from user profile
+        city: 'City',
+        state: 'State',
+        country: 'Country'
+      };
+
+      const orderResponse = await apiInstance.post('create-order/', orderData);
+      const orderOid = orderResponse.data.order_oid;
+
+      if (!orderOid) {
+        Alert.alert('Error', 'Failed to create order');
+        return;
+      }
+
+      // Create Stripe checkout session
+      const stripeResponse = await apiInstance.post(`stripe-checkout/${orderOid}/`);
+      const checkoutUrl = stripeResponse.data.url;
+
+      if (checkoutUrl) {
+        // Open Stripe checkout in web browser
+        const supported = await Linking.canOpenURL(checkoutUrl);
+        if (supported) {
+          await Linking.openURL(checkoutUrl);
+        } else {
+          Alert.alert('Error', 'Cannot open payment page');
+        }
+      } else {
+        Alert.alert('Error', 'Failed to create payment session');
+      }
+
+    } catch (error) {
+      console.error('Checkout error:', error);
+      Alert.alert('Error', 'Failed to process checkout. Please try again.');
+    }
   };
 
   return (

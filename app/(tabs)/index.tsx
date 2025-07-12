@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, Image, FlatList, StyleSheet, TouchableOpacity, ActivityIndicator, ScrollView } from 'react-native';
+import { View, Text, Image, FlatList, StyleSheet, TouchableOpacity, ActivityIndicator, ScrollView, Alert } from 'react-native';
 import apiInstance from '../Plugins/api';
 import { Stack } from 'expo-router';
 import Header from '@/components/Header';
@@ -36,7 +36,8 @@ const HomeScreen = () => {
       const response = await apiInstance.get('products/');
       setProducts(response.data);
     } catch (error) {
-      // console.error('Error fetching products:', error);
+      console.error('Error fetching products:', error);
+      Alert.alert('Error', 'Failed to load products. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -47,7 +48,8 @@ const HomeScreen = () => {
       const response = await apiInstance.get('category/');
       setCategories(response.data);
     } catch (error) {
-      // console.error('Error fetching products:', error);
+      console.error('Error fetching categories:', error);
+      Alert.alert('Error', 'Failed to load categories. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -62,7 +64,8 @@ const HomeScreen = () => {
    
       setSaleProducts(ofertasDoDia ? ofertasDoDia.products : []);
     } catch (error) {
-      console.error('Error fetching products:', error);
+      console.error('Error fetching sale products:', error);
+      Alert.alert('Error', 'Failed to load sale products. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -74,6 +77,7 @@ const HomeScreen = () => {
       setBanners(response.data);
     } catch (error) {
       console.error('Error fetching banners:', error);
+      Alert.alert('Error', 'Failed to load banners. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -88,9 +92,16 @@ const HomeScreen = () => {
 
   if (isLoading) {
     return (
-      <View>
-        <Text>Loading...</Text>
-      </View>
+      <>
+        <Stack.Screen options={{
+          headerShown: true,
+          header: () => <Header />
+        }} />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+          <Text style={styles.loadingText}>Loading...</Text>
+        </View>
+      </>
     );
   }
 
@@ -115,7 +126,17 @@ const HomeScreen = () => {
 };
 
 const styles = StyleSheet.create({
-
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: Colors.white,
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: Colors.gray,
+  },
 });
 
 export default HomeScreen;

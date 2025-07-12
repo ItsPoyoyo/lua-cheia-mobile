@@ -12,4 +12,6 @@ export const Colors = {
   highlight: '#F4CE14',
   greenDiscount: '#2ecc71',
   red: '#FF3B30',
+  green: '#34C759',
+  lightRed: '#FFE5E5',
 }

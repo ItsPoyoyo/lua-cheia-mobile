@@ -16,6 +16,7 @@ import apiInstance from './Plugins/api';
 import { getUserId } from '../components/getUserId';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
+import { useWishlist } from '../components/WishlistContext';
 
 const { width } = Dimensions.get('window');
 

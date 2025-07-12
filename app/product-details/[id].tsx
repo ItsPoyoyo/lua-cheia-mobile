@@ -9,6 +9,7 @@ import { useHeaderHeight } from '@react-navigation/elements';
 import Animated, { FadeInDown, SlideInDown } from 'react-native-reanimated';
 import { getUserId } from '../../components/getUserId'; // Utility to get user ID from token
 import CartID from '../Plugins/CartID'; // Import the CartID utility
+import { useWishlist } from '../../components/WishlistContext';
 
 type Props = {};
 
@@ -20,6 +21,25 @@ const ProductDetails = (props: Props) => {
   const [colorGallery, setColorGallery] = useState<any[]>([]); // State for color-specific gallery
   const [cartId, setCartId] = useState<string | null>(null); // State for cart ID
   const imageSliderRef = useRef<any>(null); // Ref to control the ImageSlider
+  const { isInWishlist, addToWishlist, removeFromWishlist, loading: wishlistLoading } = useWishlist();
+
+  const productIsInWishlist = product.id ? isInWishlist(product.id) : false;
+
+  const handleWishlistToggle = async () => {
+    if (!product.id) return;
+    
+    try {
+      if (productIsInWishlist) {
+        await removeFromWishlist(product.id);
+        Alert.alert('Success', 'Removed from wishlist');
+      } else {
+        await addToWishlist(product.id);
+        Alert.alert('Success', 'Added to wishlist');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to update wishlist');
+    }
+  };
 
   useEffect(() => {
     getProductDetails();
@@ -27,7 +47,7 @@ const ProductDetails = (props: Props) => {
   }, []);
 
   const getProductDetails = async () => {
-    const response = await apiInstance.get(`/products/${id}`);
+    const response = await apiInstance.get(`products/${id}/`);
     let productData = response.data;
 
     // Calculate discount percentage
@@ -148,8 +168,12 @@ const ProductDetails = (props: Props) => {
                 <Ionicons name="star" size={18} color={'#D4AF37'} />
                 <Text style={styles.rating}>{product.rating}</Text>
               </View>
-              <TouchableOpacity>
-                <Ionicons name="heart-outline" size={20} color={Colors.black} />
+              <TouchableOpacity onPress={handleWishlistToggle} disabled={wishlistLoading}>
+                <Ionicons 
+                  name={productIsInWishlist ? "heart" : "heart-outline"} 
+                  size={20} 
+                  color={productIsInWishlist ? Colors.red : Colors.black} 
+                />
               </TouchableOpacity>
             </Animated.View>
 

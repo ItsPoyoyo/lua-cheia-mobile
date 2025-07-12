@@ -6,102 +6,55 @@ import {
     Dimensions, 
     TouchableOpacity, 
     Alert,
-    ActivityIndicator  // Add this import
+    ActivityIndicator
   } from 'react-native';
-  import React, { useState, useEffect } from 'react';
+  import React, { useState } from 'react';
   import { ProductType } from '@/types/type';
   import { Ionicons } from '@expo/vector-icons';
   import { Colors } from '@/constants/Colors';
   import Animated, { FadeInDown } from 'react-native-reanimated';
   import { Link } from 'expo-router';
-  import apiInstance from '../app/Plugins/api';
-  import { getUserId } from '@/components/getUserId';
+  import { useWishlist } from './WishlistContext';
   
   type Props = {
       item: ProductType;
       index: number;
       onWishlistUpdate?: () => void;
-      isInWishlist?: boolean;
   };
   
   const width = Dimensions.get('window').width - 40;
   
-  const ProductItem = ({ item, index, onWishlistUpdate, isInWishlist: propIsInWishlist }: Props) => {
-      const [isInWishlist, setIsInWishlist] = useState(propIsInWishlist || false);
-      const [loading, setLoading] = useState(false);
-      const [userId, setUserId] = useState<string | null>(null);
+  const ProductItem = ({ item, index, onWishlistUpdate }: Props) => {
+      const { isInWishlist, addToWishlist, removeFromWishlist, loading } = useWishlist();
       const [showWishlistFeedback, setShowWishlistFeedback] = useState(false);
-  
-      // Sync with parent component's wishlist state
-      useEffect(() => {
-          if (propIsInWishlist !== undefined) {
-              setIsInWishlist(propIsInWishlist);
-          }
-      }, [propIsInWishlist]);
+      const itemIsInWishlist = isInWishlist(item.id);
   
       const handleWishlistAction = async (e: any) => {
           e.preventDefault();
           e.stopPropagation();
   
-          if (!userId) {
-              const id = await getUserId();
-              if (!id) {
-                  Alert.alert(
-                      "Sign In Required", 
-                      "Please sign in to manage your wishlist",
-                      [{ text: "OK", onPress: () => {} }]
-                  );
-                  return;
-              }
-              setUserId(id);
-          }
-  
-          setLoading(true);
           try {
-              const formData = new FormData();
-              formData.append("product_id", item.id);
-              formData.append("user_id", userId);
-  
-              if (isInWishlist) {
-                  await removeFromWishlist(formData);
+              if (itemIsInWishlist) {
+                  await removeFromWishlist(item.id);
               } else {
-                  await addToWishlist(formData);
+                  await addToWishlist(item.id);
               }
               
               // Show visual feedback
               setShowWishlistFeedback(true);
               setTimeout(() => setShowWishlistFeedback(false), 1000);
               
+              // Call the optional callback
+              onWishlistUpdate?.();
+              
           } catch (error) {
               console.error("Wishlist error:", error);
               Alert.alert(
                   "Error", 
-                  "Failed to update wishlist",
+                  "Failed to update wishlist. Please try again.",
                   [{ text: "OK", onPress: () => {} }]
               );
-          } finally {
-              setLoading(false);
           }
-      };
-  
-      const addToWishlist = async (formData: FormData) => {
-          if (!userId) return;
-          
-          await apiInstance.post(`customer/wishlist/${userId}/`, formData, {
-              headers: { 'Content-Type': 'multipart/form-data' }
-          });
-          setIsInWishlist(true);
-          onWishlistUpdate?.();
-      };
-  
-      const removeFromWishlist = async (formData: FormData) => {
-          if (!userId) return;
-          
-          await apiInstance.post(`customer/wishlist/${userId}/`, formData, {
-              headers: { 'Content-Type': 'multipart/form-data' }
-          });
-          setIsInWishlist(false);
-          onWishlistUpdate?.();
       };
   
       return (
@@ -128,12 +81,12 @@ import {
                           disabled={loading}
                       >
                           {loading ? (
-                              <ActivityIndicator size="small" color={isInWishlist ? Colors.red : Colors.darkGray} />
+                              <ActivityIndicator size="small" color={itemIsInWishlist ? Colors.red : Colors.darkGray} />
                           ) : (
                               <Ionicons 
-                                  name={isInWishlist ? "heart" : "heart-outline"} 
+                                  name={itemIsInWishlist ? "heart" : "heart-outline"} 
                                   size={22} 
-                                  color={isInWishlist ? Colors.red : Colors.darkGray} 
+                                  color={itemIsInWishlist ? Colors.red : Colors.darkGray} 
                               />
                           )}
                       </TouchableOpacity>
@@ -237,3 +190,4 @@ import {
   });
   
   export default ProductItem;
+
